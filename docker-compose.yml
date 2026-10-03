@@ -1,0 +1,79 @@
+# Portas no host (escolhidas para não colidir com o go-modular-monolith):
+#   users-service :8091  orders-service :8092  Keycloak :8280  Postgres :5434
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      retries: 15
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./deploy/postgres:/docker-entrypoint-initdb.d:ro
+
+  # Keycloak em modo DEV (banco H2 embutido, HTTP). O realm "app" é importado
+  # de deploy/keycloak/realm-app.json na subida. Console: http://localhost:8280 (admin/admin)
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.0
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # "iss" sempre http://localhost:8280/...; backchannel (JWKS, token)
+      # também funciona por http://keycloak:8080 de dentro do compose.
+      KC_HOSTNAME: http://localhost:8280
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8280:8080"
+    volumes:
+      - ./deploy/keycloak:/opt/keycloak/data/import:ro
+    healthcheck:
+      # A imagem não tem curl: usa o /dev/tcp do bash na porta de gerenciamento.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 5s
+      retries: 30
+      start_period: 10s
+
+  # `make up` sobe só Postgres + Keycloak (serviços com `make run-users` / `make run-orders`).
+  # `make docker-up` sobe tudo em containers.
+  users:
+    profiles: [app]
+    build:
+      context: .
+      args: { SERVICE: users }
+    environment:
+      DATABASE_URL: postgres://users_svc:users@postgres:5432/users?sslmode=disable
+      OIDC_ISSUER_URL: http://localhost:8280/realms/app
+      OIDC_DISCOVERY_URL: http://keycloak:8080/realms/app
+    ports:
+      - "8091:8080"
+    depends_on:
+      postgres: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+
+  orders:
+    profiles: [app]
+    build:
+      context: .
+      args: { SERVICE: orders }
+    environment:
+      DATABASE_URL: postgres://orders_svc:orders@postgres:5432/orders?sslmode=disable
+      OIDC_ISSUER_URL: http://localhost:8280/realms/app
+      OIDC_DISCOVERY_URL: http://keycloak:8080/realms/app
+      OIDC_CLIENT_SECRET: orders-secret
+      USERS_URL: http://users:8080
+    ports:
+      - "8092:8080"
+    depends_on:
+      postgres: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+      users: { condition: service_healthy }
+
+volumes:
+  pgdata:

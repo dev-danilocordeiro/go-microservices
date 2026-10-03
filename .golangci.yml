@@ -1,0 +1,41 @@
+version: "2"
+linters:
+  enable:
+    - errorlint   # obriga errors.Is/As em vez de == e type assertion
+    - wrapcheck   # erros de libs externas devem ser embrulhados
+    - bodyclose
+    - noctx
+    - revive
+    - depguard    # pacotes de teste não podem ir para produção
+  settings:
+    depguard:
+      rules:
+        test-helpers:
+          files: ["!$test"]
+          deny:
+            - pkg: github.com/dev-danilocordeiro/go-microservices/services/users/userstest
+              desc: "userstest sobe um users-service em memória: só em testes"
+            - pkg: github.com/dev-danilocordeiro/go-authkit/authtest
+              desc: "authtest emite tokens falsos: só em testes"
+    revive:
+      rules:
+        # "todo exportado precisa de comentário" faz sentido para bibliotecas
+        # públicas; num app, gera comentários que só repetem o nome.
+        - name: exported
+          disabled: true
+    wrapcheck:
+      ignore-sigs:
+        - .Errorf(
+        - errors.New(
+        - .Wrap(
+        - .Internal(
+        - .WithField(
+        - .WithMessage(
+      ignore-package-globs:
+        - github.com/dev-danilocordeiro/go-microservices/*
+        - github.com/dev-danilocordeiro/go-authkit/*  # erros já classificados (401/403)
+        - github.com/gofiber/fiber/v3   # handlers só devolvem o erro para o ErrorHandler
+formatters:
+  enable:
+    - gofmt
+    - goimports

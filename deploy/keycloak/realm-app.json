@@ -1,0 +1,238 @@
+{
+  "realm": "app",
+  "enabled": true,
+  "displayName": "App microservices (dev)",
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "accessTokenLifespan": 300,
+  "roles": {
+    "client": {
+      "users-service": [
+        {
+          "name": "admin"
+        },
+        {
+          "name": "users:read",
+          "description": "Ler perfis de qualquer usuário (sistemas)"
+        }
+      ],
+      "orders-service": [
+        {
+          "name": "admin"
+        },
+        {
+          "name": "orders:read"
+        },
+        {
+          "name": "orders:write"
+        }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "users-service",
+      "enabled": true,
+      "bearerOnly": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "orders-service",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "orders-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "attributes": {
+        "standard.token.exchange.enabled": "true"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "roles",
+        "profile",
+        "basic",
+        "email",
+        "service_account"
+      ],
+      "protocolMappers": [
+        {
+          "name": "audience-users-service",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "users-service",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "app-web",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-users-service",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "users-service",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "audience-orders-service",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "orders-service",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "billing-service",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "billing-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "roles",
+        "profile",
+        "basic",
+        "email",
+        "service_account"
+      ],
+      "protocolMappers": [
+        {
+          "name": "audience-orders-service",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "orders-service",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "alice",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "alice@example.com",
+      "firstName": "Alice",
+      "lastName": "Silva",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "alice",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "orders-service": [
+          "orders:write"
+        ]
+      }
+    },
+    {
+      "username": "bob",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "bob@example.com",
+      "firstName": "Bob",
+      "lastName": "Souza",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "bob",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "orders-service": [
+          "orders:write"
+        ]
+      }
+    },
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin@example.com",
+      "firstName": "Admin",
+      "lastName": "Root",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "orders-service": [
+          "admin",
+          "orders:write"
+        ],
+        "users-service": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "username": "service-account-orders-service",
+      "enabled": true,
+      "serviceAccountClientId": "orders-service",
+      "clientRoles": {
+        "users-service": [
+          "users:read"
+        ]
+      }
+    },
+    {
+      "username": "service-account-billing-service",
+      "enabled": true,
+      "serviceAccountClientId": "billing-service",
+      "clientRoles": {
+        "orders-service": [
+          "orders:read",
+          "orders:write"
+        ]
+      }
+    }
+  ]
+}
