@@ -9,15 +9,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dev-danilocordeiro/go-microservices/services/users/usersapi"
+	"github.com/dev-danilocordeiro/go-microservices/internal/platform/apperr"
 )
 
-// Os erros do domínio SÃO o contrato público (pacote usersapi): o código
-// "users.not_found" que sai daqui é o mesmo que o orders compara do outro
-// lado da rede.
+// Erros do domínio. Os Codes são os mesmos do contrato público (usersapi) e,
+// como apperr.Error compara por Code, errors.Is casa os dois lados. O domínio
+// não importa usersapi: quem traduz para o contrato é a camada HTTP.
 var (
-	ErrNotFound = usersapi.ErrNotFound
-	ErrInvalid  = usersapi.ErrInvalid
+	ErrNotFound = apperr.New(apperr.KindNotFound, "users.not_found", "usuário não encontrado")
+	ErrInvalid  = apperr.New(apperr.KindInvalid, "users.invalid", "dados de usuário inválidos")
 )
 
 type User struct {
