@@ -28,7 +28,8 @@ type User struct {
 }
 
 // Erros do contrato. apperr.Error compara por Code, então o erro reconstruído
-// a partir do Problem Details da resposta é errors.Is-igual a estes.
+// a partir do Problem Details da resposta é errors.Is-igual a estes. O domínio
+// (internal/domain) define erros com os mesmos Codes; não troque um sem o outro.
 var (
 	ErrNotFound = apperr.New(apperr.KindNotFound, "users.not_found", "usuário não encontrado")
 	ErrInvalid  = apperr.New(apperr.KindInvalid, "users.invalid", "dados de usuário inválidos")
